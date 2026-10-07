@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 import type { PoolClient } from 'pg';
-import { db } from './db';
+import { db } from './db.js';
 
 export const SQLITE_IMPORT_TABLES = {
   categories: ['id', 'name', 'slug'],

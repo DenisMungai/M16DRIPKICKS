@@ -6,8 +6,8 @@ import type { Pool, PoolClient } from 'pg';
 import { after, describe, it } from 'node:test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SQLITE_IMPORT_TABLES, importSqliteData } from '../sqlite-importer';
-import type { db } from '../db';
+import { SQLITE_IMPORT_TABLES, importSqliteData } from '../sqlite-importer.js';
+import type { db } from '../db.js';
 
 const migrationPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../migrations/001_initial.sql');
 const targets: Pool[] = [];

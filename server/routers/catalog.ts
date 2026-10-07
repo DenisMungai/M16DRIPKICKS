@@ -1,11 +1,11 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-import { config } from '../config';
-import { db } from '../db';
-import { PRODUCT_SELECT, productDto, type ProductRow } from '../models';
-import { publicProcedure, router } from '../trpc';
-import { buildQuote } from '../services/pricing';
-import { stripeEnabled } from '../services/payments';
+import { config } from '../config.js';
+import { db } from '../db.js';
+import { PRODUCT_SELECT, productDto, type ProductRow } from '../models.js';
+import { publicProcedure, router } from '../trpc.js';
+import { buildQuote } from '../services/pricing.js';
+import { stripeEnabled } from '../services/payments.js';
 
 const SORTS = {
   featured: 'p.sold DESC, p.id DESC',

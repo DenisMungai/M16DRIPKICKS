@@ -1,7 +1,7 @@
 import type { CreateExpressContextOptions } from '@trpc/server/adapters/express';
-import { COOKIE_NAME, readSession } from './auth';
-import { db } from './db';
-import type { UserRow } from './models';
+import { COOKIE_NAME, readSession } from './auth.js';
+import { db } from './db.js';
+import type { UserRow } from './models.js';
 
 export async function createContext({ req, res }: CreateExpressContextOptions) {
   const id = readSession(req.cookies?.[COOKIE_NAME]);

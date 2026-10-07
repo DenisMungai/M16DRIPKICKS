@@ -1,6 +1,6 @@
-import { config } from './config';
-import { closeDatabase } from './db';
-import { syncAdminAccount } from './admin-account';
+import { config } from './config.js';
+import { closeDatabase } from './db.js';
+import { syncAdminAccount } from './admin-account.js';
 
 async function main() {
   const email = process.env.ADMIN_EMAIL?.trim();

@@ -1,5 +1,5 @@
-import { closeDatabase } from './db';
-import { removeDemoOrders } from './demo-orders';
+import { closeDatabase } from './db.js';
+import { removeDemoOrders } from './demo-orders.js';
 
 removeDemoOrders()
   .then(({ deletedOrders, deletedOrderItems }) => {

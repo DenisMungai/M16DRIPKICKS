@@ -25,7 +25,7 @@ async function getApp(): Promise<Express> {
   if (!appPromise) {
     appPromise = (async () => {
       try {
-        const { createApp } = await import('./app');
+        const { createApp } = await import('./app.js');
         cachedApp = createApp();
         console.info('[vercel-api] Express app constructed');
         return cachedApp;
@@ -44,13 +44,13 @@ async function getApp(): Promise<Express> {
 async function initializeDatabaseAndSeed() {
   let stage: InitializationStage = 'environment';
   try {
-    const { assertRequiredEnvironment } = await import('./config');
+    const { assertRequiredEnvironment } = await import('./config.js');
     assertRequiredEnvironment();
     stage = 'database/migrations';
-    const { initializeDatabase } = await import('./db');
+    const { initializeDatabase } = await import('./db.js');
     await initializeDatabase();
     stage = 'seeding';
-    const { seedIfEmpty } = await import('./seed');
+    const { seedIfEmpty } = await import('./seed.js');
     await seedIfEmpty();
     console.info('[vercel-api] database initialization complete');
   } catch (error) {

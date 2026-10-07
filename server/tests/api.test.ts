@@ -11,11 +11,11 @@ process.env.SEED_DEMO_DATA = 'true';
 process.env.STRIPE_SECRET_KEY = '';
 process.env.MPESA_CONSUMER_KEY = '';
 
-type Caller = ReturnType<Awaited<typeof import('../trpc')>['createCallerFactory']> extends (ctx: never) => infer R ? R : never;
+type Caller = ReturnType<Awaited<typeof import('../trpc.js')>['createCallerFactory']> extends (ctx: never) => infer R ? R : never;
 
 let make: (userId?: number) => any;
-let db: typeof import('../db').db;
-let users: Map<number, import('../models').UserRow>;
+let db: typeof import('../db.js').db;
+let users: Map<number, import('../models.js').UserRow>;
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const row = async <T extends import('pg').QueryResultRow>(sql: string, values: readonly unknown[] = []) =>
   (await db.query<T>(sql, values)).rows[0];
@@ -26,16 +26,16 @@ const pid = async (sku: string) => (await row<{ id: number }>('SELECT id FROM pr
 before(async () => {
   const memory = newDb({ autoCreateForeignKeyIndices: true });
   const TestPool = memory.adapters.createPg().Pool;
-  const database = await import('../db');
+  const database = await import('../db.js');
   db = database.db;
   database.setPoolForTests(new TestPool() as unknown as import('pg').Pool);
   await database.initializeDatabase((sql) => sql.replaceAll('DEFAULT CURRENT_TIMESTAMP::text', "DEFAULT '2026-01-01T00:00:00.000Z'"));
-  const { seedAll } = await import('../seed');
-  const { appRouter } = await import('../router');
-  const { createCallerFactory } = await import('../trpc');
+  const { seedAll } = await import('../seed.js');
+  const { appRouter } = await import('../router.js');
+  const { createCallerFactory } = await import('../trpc.js');
   await seedAll();
   const factory = createCallerFactory(appRouter);
-  const allUsers = await db.query<import('../models').UserRow>('SELECT * FROM users');
+  const allUsers = await db.query<import('../models.js').UserRow>('SELECT * FROM users');
   users = new Map(allUsers.rows.map((user) => [user.id, user]));
   make = (userId) => {
     const user = userId ? users.get(userId) ?? null : null;
@@ -46,8 +46,8 @@ before(async () => {
 const address = { name: 'Test Buyer', phone: '0712345678', line1: '12 Test Street', city: 'Nairobi', country: 'Kenya' };
 describe('admin credential sync', () => {
   it('creates and updates only the configured admin account with a hashed password', async () => {
-    const { syncAdminAccount } = await import('../admin-account');
-    const { hashPassword, verifyPassword } = await import('../auth');
+    const { syncAdminAccount } = await import('../admin-account.js');
+    const { hashPassword, verifyPassword } = await import('../auth.js');
     const email = 'admin-sync-test@example.test';
     const unrelatedPasswordHash = await hashPassword('Unrelated123!');
     const unrelated = await db.query<{ id: number }>(
@@ -58,18 +58,18 @@ describe('admin credential sync', () => {
     let adminId: number | undefined;
     try {
       adminId = await syncAdminAccount(email, 'InitialPassword123!');
-      let admin = await row<import('../models').UserRow>('SELECT * FROM users WHERE id = $1', [adminId]);
+      let admin = await row<import('../models.js').UserRow>('SELECT * FROM users WHERE id = $1', [adminId]);
       assert.equal(admin.role, 'admin');
       assert.equal(await verifyPassword('InitialPassword123!', admin.password_hash), true);
 
       await db.query("UPDATE users SET role = 'customer' WHERE id = $1", [adminId]);
       const updatedId = await syncAdminAccount(email.toUpperCase(), 'UpdatedPassword123!');
-      admin = await row<import('../models').UserRow>('SELECT * FROM users WHERE id = $1', [updatedId]);
+      admin = await row<import('../models.js').UserRow>('SELECT * FROM users WHERE id = $1', [updatedId]);
       assert.equal(updatedId, adminId);
       assert.equal(admin.role, 'admin');
       assert.equal(await verifyPassword('InitialPassword123!', admin.password_hash), false);
       assert.equal(await verifyPassword('UpdatedPassword123!', admin.password_hash), true);
-      assert.equal((await row<import('../models').UserRow>('SELECT * FROM users WHERE id = $1', [unrelated.rows[0].id])).role, 'customer');
+      assert.equal((await row<import('../models.js').UserRow>('SELECT * FROM users WHERE id = $1', [unrelated.rows[0].id])).role, 'customer');
     } finally {
       if (adminId !== undefined) await db.query('DELETE FROM users WHERE id = $1', [adminId]);
       await db.query('DELETE FROM users WHERE id = $1', [unrelated.rows[0].id]);
@@ -77,7 +77,7 @@ describe('admin credential sync', () => {
   });
 
   it('rejects missing credentials without writing an account', async () => {
-    const { syncAdminAccount } = await import('../admin-account');
+    const { syncAdminAccount } = await import('../admin-account.js');
     const before = (await row<{ count: number }>('SELECT COUNT(*)::integer AS count FROM users')).count;
     await assert.rejects(syncAdminAccount('', 'password'), /ADMIN_EMAIL and ADMIN_PASSWORD/);
     await assert.rejects(syncAdminAccount('admin@example.test', ''), /ADMIN_EMAIL and ADMIN_PASSWORD/);
@@ -98,13 +98,13 @@ describe('catalog', () => {
     assert.ok(priceSort.items[0].price <= priceSort.items.at(-1)!.price);
   });
   it('uses the same configured KSh conversion for product prices and M-Pesa', async () => {
-    const { kesAmount } = await import('../services/payments');
+    const { kesAmount } = await import('../services/payments.js');
     const cents = (await row<{ price_cents: number }>('SELECT price_cents FROM products WHERE sku = $1', ['M16-STRAP-SNEAKER'])).price_cents;
     const product = await make().catalog.products.byId({ id: await pid('M16-STRAP-SNEAKER') });
     assert.equal(kesAmount(cents), product.price);
   });
   it('refreshes the catalog idempotently without deleting customer or order history', async () => {
-    const { refreshCatalog } = await import('../seed');
+    const { refreshCatalog } = await import('../seed.js');
     const usersBefore = (await row<{ n: number }>('SELECT COUNT(*)::integer AS n FROM users')).n;
     const ordersBefore = (await row<{ n: number }>('SELECT COUNT(*)::integer AS n FROM orders')).n;
     const wishlistBefore = (await row<{ n: number }>('SELECT COUNT(*)::integer AS n FROM wishlist')).n;
@@ -136,7 +136,7 @@ describe('auth', () => {
   it('registers, rejects duplicates and bad logins, grants coupons', async () => {
     const api = make();
     const u = await api.auth.register({ name: 'Test Buyer', email: 'Buyer@Example.com', password: 'Secret123!' });
-    users.set(u.id, await row<import('../models').UserRow>('SELECT * FROM users WHERE id = $1', [u.id]));
+    users.set(u.id, await row<import('../models.js').UserRow>('SELECT * FROM users WHERE id = $1', [u.id]));
     assert.equal(u.email, 'buyer@example.com');
     await assert.rejects(api.auth.register({ name: 'X Y', email: 'buyer@example.com', password: 'Secret123!' }), /already exists/);
     await assert.rejects(api.auth.login({ email: 'buyer@example.com', password: 'wrong-password' }), /incorrect/);
@@ -445,7 +445,7 @@ describe('admin', () => {
 
 describe('demo order cleanup', () => {
   it('removes seed-marked orders and lines while preserving real data and inventory', async () => {
-    const { removeDemoOrders } = await import('../demo-orders');
+    const { removeDemoOrders } = await import('../demo-orders.js');
     const userId = (await row<{ id: number }>("SELECT id FROM users WHERE email = 'buyer@example.com'")).id;
     const productId = await pid('M16-STRAP-SNEAKER');
     const before = {

@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { promisify } from 'node:util';
 import jwt from 'jsonwebtoken';
-import { config } from './config';
+import { config } from './config.js';
 
 const scrypt = promisify(crypto.scrypt) as (pw: string, salt: Buffer, len: number) => Promise<Buffer>;
 

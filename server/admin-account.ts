@@ -1,5 +1,5 @@
-import { hashPassword } from './auth';
-import { db } from './db';
+import { hashPassword } from './auth.js';
+import { db } from './db.js';
 
 export async function syncAdminAccount(
   email: string,

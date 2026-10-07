@@ -1,4 +1,4 @@
-import { closeDatabase, initializeDatabase } from './db';
+import { closeDatabase, initializeDatabase } from './db.js';
 
 try {
   await initializeDatabase();

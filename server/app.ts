@@ -7,12 +7,12 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
-import { COOKIE_NAME, readSession } from './auth';
-import { config } from './config';
-import { db } from './db';
-import { createContext } from './context';
-import { appRouter } from './router';
-import { handleMpesaCallback, handleStripeEvent } from './services/payments';
+import { COOKIE_NAME, readSession } from './auth.js';
+import { config } from './config.js';
+import { db } from './db.js';
+import { createContext } from './context.js';
+import { appRouter } from './router.js';
+import { handleMpesaCallback, handleStripeEvent } from './services/payments.js';
 
 function sniffImage(b: Buffer): 'jpg' | 'png' | 'gif' | 'webp' | null {
   if (b.length > 12 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'jpg';

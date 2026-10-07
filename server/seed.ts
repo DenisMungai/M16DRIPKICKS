@@ -1,9 +1,9 @@
 import crypto from 'node:crypto';
-import { config } from './config';
-import { hashPassword } from './auth';
-import { syncAdminAccount } from './admin-account';
-import { db } from './db';
-import { catalogBrand, catalogCategories, catalogInitialStock, catalogProducts } from './catalog';
+import { config } from './config.js';
+import { hashPassword } from './auth.js';
+import { syncAdminAccount } from './admin-account.js';
+import { db } from './db.js';
+import { catalogBrand, catalogCategories, catalogInitialStock, catalogProducts } from './catalog.js';
 
 const DAY = 86_400_000;
 const iso = (t: number) => new Date(t).toISOString();
@@ -225,7 +225,7 @@ export async function seedIfEmpty() {
 
 if (process.argv[1]?.endsWith('seed.ts')) {
   (async () => {
-    const { initializeDatabase } = await import('./db');
+    const { initializeDatabase } = await import('./db.js');
     await initializeDatabase();
     if (process.argv.includes('--catalog')) {
       const existing = await db.query<{ n: number }>('SELECT COUNT(*)::integer AS n FROM products');

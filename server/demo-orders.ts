@@ -1,5 +1,5 @@
 import type { PoolClient } from 'pg';
-import { db } from './db';
+import { db } from './db.js';
 
 export async function removeDemoOrders(database: Pick<typeof db, 'transaction'> = db) {
   return database.transaction(async (client: PoolClient) => {

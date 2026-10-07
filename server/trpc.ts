@@ -1,6 +1,6 @@
 import { initTRPC, TRPCError } from '@trpc/server';
 import { ZodError } from 'zod';
-import type { Context } from './context';
+import type { Context } from './context.js';
 
 const t = initTRPC.context<Context>().create({
   // Turn zod issues into one readable message plus a field -> message map the forms can use.

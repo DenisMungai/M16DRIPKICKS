@@ -1,9 +1,9 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-import { db } from '../db';
-import { PRODUCT_SELECT, productDto, toKes, type ProductRow } from '../models';
-import { findCoupon } from '../services/pricing';
-import { protectedProcedure, router } from '../trpc';
+import { db } from '../db.js';
+import { PRODUCT_SELECT, productDto, toKes, type ProductRow } from '../models.js';
+import { findCoupon } from '../services/pricing.js';
+import { protectedProcedure, router } from '../trpc.js';
 
 export const wishlistRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {

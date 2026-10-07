@@ -3,10 +3,10 @@ import { z } from 'zod';
 import {
   clearLoginFailures, COOKIE_NAME, cookieOptions, hashPassword, loginLocked,
   recordLoginFailure, signSession, verifyPassword,
-} from '../auth';
-import { db } from '../db';
-import { userDto, type UserRow } from '../models';
-import { protectedProcedure, publicProcedure, router } from '../trpc';
+} from '../auth.js';
+import { db } from '../db.js';
+import { userDto, type UserRow } from '../models.js';
+import { protectedProcedure, publicProcedure, router } from '../trpc.js';
 
 const email = z.string().trim().toLowerCase().email('Enter a valid email address.');
 const password = z.string().min(8, 'Use at least 8 characters.').max(128);

@@ -1,9 +1,9 @@
-import { addressesRouter, couponsRouter, wishlistRouter } from './routers/account';
-import { adminRouter } from './routers/admin';
-import { authRouter } from './routers/auth';
-import { catalogRouter, checkoutRouter, metaRouter } from './routers/catalog';
-import { ordersRouter } from './routers/orders';
-import { router } from './trpc';
+import { addressesRouter, couponsRouter, wishlistRouter } from './routers/account.js';
+import { adminRouter } from './routers/admin.js';
+import { authRouter } from './routers/auth.js';
+import { catalogRouter, checkoutRouter, metaRouter } from './routers/catalog.js';
+import { ordersRouter } from './routers/orders.js';
+import { router } from './trpc.js';
 
 export const appRouter = router({
   auth: authRouter,

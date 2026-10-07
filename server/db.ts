@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from 'pg';
-import { config } from './config';
+import { config } from './config.js';
 
 let pool: Pool | null = null;
 

@@ -1,9 +1,9 @@
 import Stripe from 'stripe';
 import { TRPCError } from '@trpc/server';
-import { config } from '../config';
-import { db } from '../db';
-import { toKes, type OrderRow } from '../models';
-import { failPayment, getOrder, markPaid } from './settlement';
+import { config } from '../config.js';
+import { db } from '../db.js';
+import { toKes, type OrderRow } from '../models.js';
+import { failPayment, getOrder, markPaid } from './settlement.js';
 
 /* ---------------------------------- M-Pesa ---------------------------------- */
 

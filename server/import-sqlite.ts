@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
-import { config } from './config';
-import { closeDatabase, initializeDatabase } from './db';
-import { importSqliteData } from './sqlite-importer';
+import { config } from './config.js';
+import { closeDatabase, initializeDatabase } from './db.js';
+import { importSqliteData } from './sqlite-importer.js';
 
 async function main() {
   try {

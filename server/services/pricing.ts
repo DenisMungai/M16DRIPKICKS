@@ -1,6 +1,6 @@
-import { config } from '../config';
-import { db } from '../db';
-import { getProductRows, productDto, toKes, type ProductRow } from '../models';
+import { config } from '../config.js';
+import { db } from '../db.js';
+import { getProductRows, productDto, toKes, type ProductRow } from '../models.js';
 import type { PoolClient } from 'pg';
 
 export type ShippingMethod = 'standard' | 'express';

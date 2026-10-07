@@ -1,6 +1,6 @@
 import type { PoolClient } from 'pg';
-import { db, nowIso } from '../db';
-import type { OrderRow } from '../models';
+import { db, nowIso } from '../db.js';
+import type { OrderRow } from '../models.js';
 
 export async function getOrder(code: string) {
   const result = await db.query<OrderRow>('SELECT * FROM orders WHERE code = $1', [code]);

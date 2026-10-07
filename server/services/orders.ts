@@ -1,10 +1,10 @@
 import crypto from 'node:crypto';
 import { TRPCError } from '@trpc/server';
-import { db, nowIso } from '../db';
-import type { OrderRow, UserRow } from '../models';
-import { buildQuote, type LineInput, type ShippingMethod } from './pricing';
-import { startCard, startMpesa } from './payments';
-import { failPayment, getOrder } from './settlement';
+import { db, nowIso } from '../db.js';
+import type { OrderRow, UserRow } from '../models.js';
+import { buildQuote, type LineInput, type ShippingMethod } from './pricing.js';
+import { startCard, startMpesa } from './payments.js';
+import { failPayment, getOrder } from './settlement.js';
 
 export type CreateOrderInput = {
   items: LineInput[];

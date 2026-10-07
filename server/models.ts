@@ -1,5 +1,5 @@
-import { db } from './db';
-import { config } from './config';
+import { db } from './db.js';
+import { config } from './config.js';
 import type { PoolClient } from 'pg';
 
 export const toUsd = (cents: number) => Math.round(cents) / 100;

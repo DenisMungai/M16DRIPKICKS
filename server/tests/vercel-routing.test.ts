@@ -3,7 +3,7 @@ import { createServer, type Server } from 'node:http';
 import { after, before, describe, it } from 'node:test';
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import { newDb } from 'pg-mem';
-import type { AppRouter } from '../router';
+import type { AppRouter } from '../router.js';
 
 process.env.NODE_ENV = 'test';
 process.env.DATABASE_URL = 'postgres://localhost:5432/test';
@@ -17,14 +17,14 @@ let initializeTestDatabase: () => Promise<void>;
 before(async () => {
   const memory = newDb({ autoCreateForeignKeyIndices: true, noAstCoverageCheck: true });
   const TestPool = memory.adapters.createPg().Pool;
-  const database = await import('../db');
+  const database = await import('../db.js');
   database.setPoolForTests(new TestPool() as unknown as import('pg').Pool);
   initializeTestDatabase = async () => {
     await database.initializeDatabase((sql) => sql.replaceAll('DEFAULT CURRENT_TIMESTAMP::text', "DEFAULT '2026-01-01T00:00:00.000Z'"));
-    const { seedIfEmpty } = await import('../seed');
+    const { seedIfEmpty } = await import('../seed.js');
     await seedIfEmpty();
   };
-  const { default: handleVercelRequest } = await import('../vercel-handler');
+  const { default: handleVercelRequest } = await import('../vercel-handler.js');
   server = createServer((req, res) => {
     void handleVercelRequest(req as never, res as never);
   });
