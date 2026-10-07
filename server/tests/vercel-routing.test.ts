@@ -12,17 +12,18 @@ process.env.SEED_DEMO_DATA = 'false';
 let server: Server;
 let baseUrl: string;
 let trpcClient: ReturnType<typeof createTRPCProxyClient<AppRouter>>;
+let initializeTestDatabase: () => Promise<void>;
 
 before(async () => {
   const memory = newDb({ autoCreateForeignKeyIndices: true, noAstCoverageCheck: true });
   const TestPool = memory.adapters.createPg().Pool;
   const database = await import('../db');
   database.setPoolForTests(new TestPool() as unknown as import('pg').Pool);
-
-  await database.initializeDatabase((sql) => sql.replaceAll('DEFAULT CURRENT_TIMESTAMP::text', "DEFAULT '2026-01-01T00:00:00.000Z'"));
-  const { seedIfEmpty } = await import('../seed');
-  await seedIfEmpty();
-
+  initializeTestDatabase = async () => {
+    await database.initializeDatabase((sql) => sql.replaceAll('DEFAULT CURRENT_TIMESTAMP::text', "DEFAULT '2026-01-01T00:00:00.000Z'"));
+    const { seedIfEmpty } = await import('../seed');
+    await seedIfEmpty();
+  };
   const { default: handleVercelRequest } = await import('../vercel-handler');
   server = createServer((req, res) => {
     void handleVercelRequest(req as never, res as never);
@@ -48,6 +49,7 @@ describe('Vercel API routing', () => {
   });
 
   it('serves batched tRPC catalog, product list, and detail queries from the database', async () => {
+    await initializeTestDatabase();
     const categories = await trpcClient.catalog.categories.query();
     assert.deepEqual(categories.map(({ name }) => name), ['Footwear', 'Apparel']);
 

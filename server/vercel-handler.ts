@@ -14,18 +14,29 @@ class ApiInitializationError extends Error {
   }
 }
 
-let appPromise: Promise<Express> | undefined;
-
 type VercelRequest = IncomingMessage & {
   url?: string;
 };
 
-type VercelResponse = ServerResponse & {
-  status(code: number): VercelResponse;
-  json(body: unknown): void;
-};
+type VercelResponse = ServerResponse;
 
-async function initializeApp() {
+let cachedApp: Express | undefined;
+let databasePromise: Promise<void> | undefined;
+
+function getApp() {
+  if (!cachedApp) {
+    try {
+      cachedApp = createApp();
+      console.info('[vercel-api] Express app constructed');
+    } catch (error) {
+      console.error('[vercel-api] Express app construction failed', error);
+      throw new ApiInitializationError('Express app construction', error);
+    }
+  }
+  return cachedApp;
+}
+
+async function initializeDatabaseAndSeed() {
   let stage: InitializationStage = 'environment';
   try {
     assertRequiredEnvironment();
@@ -33,24 +44,43 @@ async function initializeApp() {
     await initializeDatabase();
     stage = 'seeding';
     await seedIfEmpty();
-    stage = 'Express app construction';
-    const app = createApp();
-    console.info('[vercel-api] initialization complete');
-    return app;
+    console.info('[vercel-api] database initialization complete');
   } catch (error) {
     console.error(`[vercel-api] initialization failed during ${stage}`, error);
     throw new ApiInitializationError(stage, error);
   }
 }
 
-function ensureApp() {
-  if (!appPromise) {
-    appPromise = initializeApp().catch((error: unknown) => {
-      appPromise = undefined;
+function ensureDatabase() {
+  if (!databasePromise) {
+    databasePromise = initializeDatabaseAndSeed().catch((error: unknown) => {
+      databasePromise = undefined;
       throw error;
     });
   }
-  return appPromise;
+  return databasePromise;
+}
+
+function sendInitializationError(res: VercelResponse, error: unknown) {
+  const stage = error instanceof ApiInitializationError ? error.stage : 'unknown';
+  res.statusCode = 500;
+  res.setHeader('content-type', 'application/json; charset=utf-8');
+  res.end(JSON.stringify({ error: 'API initialization failed.', stage }));
+}
+
+function dispatch(app: Express, req: VercelRequest, res: VercelResponse) {
+  try {
+    app(req as never, res as never);
+  } catch (error) {
+    console.error('[vercel-api] Express request dispatch failed', error);
+    if (res.headersSent) {
+      res.destroy(error instanceof Error ? error : new Error('Express request dispatch failed.'));
+      return;
+    }
+    res.statusCode = 500;
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify({ error: 'Express request dispatch failed.' }));
+  }
 }
 
 export default async function handleVercelRequest(req: VercelRequest, res: VercelResponse) {
@@ -69,14 +99,25 @@ export default async function handleVercelRequest(req: VercelRequest, res: Verce
     normalizedApiPrefix: hadApiPrefix ? 'preserved' : 'added',
   });
 
-  let app;
+  let app: Express;
   try {
-    app = await ensureApp();
+    app = getApp();
   } catch (error) {
-    const stage = error instanceof ApiInitializationError ? error.stage : 'unknown';
-    res.status(500).json({ error: 'API initialization failed.', stage });
+    sendInitializationError(res, error);
     return;
   }
 
-  app(req as never, res as never);
+  if (req.method === 'GET' && receivedUrl.pathname === '/api/health') {
+    dispatch(app, req, res);
+    return;
+  }
+
+  try {
+    await ensureDatabase();
+  } catch (error) {
+    sendInitializationError(res, error);
+    return;
+  }
+
+  dispatch(app, req, res);
 }
