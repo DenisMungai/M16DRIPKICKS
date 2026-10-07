@@ -89,8 +89,11 @@ export function createApp() {
 
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
-  app.use('/trpc', rateLimit({ windowMs: 60_000, limit: 600, standardHeaders: true, legacyHeaders: false }));
-  app.use('/trpc', createExpressMiddleware({ router: appRouter, createContext }));
+  const trpcRateLimit = rateLimit({ windowMs: 60_000, limit: 600, standardHeaders: true, legacyHeaders: false });
+  const trpcMiddleware = createExpressMiddleware({ router: appRouter, createContext });
+
+  app.use(['/trpc', '/api/trpc'], trpcRateLimit);
+  app.use(['/trpc', '/api/trpc'], trpcMiddleware);
 
   const dist = path.resolve('dist');
   if (config.isProd && fs.existsSync(dist)) {
