@@ -5,7 +5,7 @@
   "functions": {
     "api/[...path].ts": {
       "runtime": "nodejs20.x",
-      "includeFiles": ["server/**"]
+      "includeFiles": "server/**"
     }
   }
 }
