@@ -3,6 +3,15 @@
   "functions": {
     "api/[...path].ts": {
       "includeFiles": "server/migrations/**"
+    },
+    "api/trpc/[procedure].ts": {
+      "includeFiles": "server/migrations/**"
+    },
+    "api/stripe/webhook.ts": {
+      "includeFiles": "server/migrations/**"
+    },
+    "api/mpesa/callback.ts": {
+      "includeFiles": "server/migrations/**"
     }
   }
 }

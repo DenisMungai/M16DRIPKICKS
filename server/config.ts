@@ -40,6 +40,15 @@ export const config = {
   },
 };
 
-if (isProd && !config.jwtSecret) {
-  throw new Error('JWT_SECRET must be set when NODE_ENV=production.');
+export function assertRequiredEnvironment() {
+  if (!config.isProd) return;
+
+  const missing = [
+    ['DATABASE_URL', config.databaseUrl],
+    ['JWT_SECRET', config.jwtSecret],
+  ].filter(([, value]) => !value).map(([name]) => name);
+
+  if (missing.length) {
+    throw new Error(`Missing required production environment variable(s): ${missing.join(', ')}.`);
+  }
 }

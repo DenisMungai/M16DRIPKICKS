@@ -26,6 +26,18 @@ export function createApp() {
   const app = express();
   app.set('trust proxy', 1);
   app.disable('x-powered-by');
+  if (process.env.VERCEL) {
+    app.use((req, _res, next) => {
+      const requestPath = (url: string) => new URL(url, 'http://vercel.local').pathname;
+      console.info('[express] request path', {
+        method: req.method,
+        reqUrl: requestPath(req.url),
+        reqPath: req.path,
+        reqOriginalUrl: requestPath(req.originalUrl),
+      });
+      next();
+    });
+  }
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
@@ -90,7 +102,13 @@ export function createApp() {
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
   const trpcRateLimit = rateLimit({ windowMs: 60_000, limit: 600, standardHeaders: true, legacyHeaders: false });
-  const trpcMiddleware = createExpressMiddleware({ router: appRouter, createContext });
+  const trpcMiddleware = createExpressMiddleware({
+    router: appRouter,
+    createContext,
+    onError({ path, error }) {
+      console.error('[trpc] request failed', { path, code: error.code, message: error.message });
+    },
+  });
 
   app.use(['/trpc', '/api/trpc'], trpcRateLimit);
   app.use(['/trpc', '/api/trpc'], trpcMiddleware);

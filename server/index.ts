@@ -1,9 +1,10 @@
 import { createApp } from './app';
-import { config } from './config';
+import { assertRequiredEnvironment, config } from './config';
 import { seedIfEmpty } from './seed';
 import { initializeDatabase } from './db';
 import { expireStaleOrders } from './services/settlement';
 
+assertRequiredEnvironment();
 await initializeDatabase();
 await seedIfEmpty();
 
