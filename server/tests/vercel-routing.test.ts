@@ -50,6 +50,27 @@ describe('Vercel API routing', () => {
 
   it('serves batched tRPC catalog, product list, and detail queries from the database', async () => {
     await initializeTestDatabase();
+    const requestUrls: string[] = [];
+    const batchClient = createTRPCProxyClient<AppRouter>({
+      links: [httpBatchLink({
+        url: `${baseUrl}/api/trpc`,
+        fetch(input, init) {
+          requestUrls.push(String(input));
+          return fetch(input, init);
+        },
+      })],
+    });
+    const [me, batchCategories, home] = await Promise.all([
+      batchClient.auth.me.query(),
+      batchClient.catalog.categories.query(),
+      batchClient.catalog.home.query(),
+    ]);
+    assert.equal(requestUrls.length, 1);
+    assert.equal(new URL(requestUrls[0]).pathname, '/api/trpc/auth.me,catalog.categories,catalog.home');
+    assert.equal(me, null);
+    assert.deepEqual(batchCategories.map(({ name }) => name), ['Footwear', 'Apparel']);
+    assert.ok(home && 'newArrivals' in home && 'bestSellers' in home && 'deals' in home);
+
     const categories = await trpcClient.catalog.categories.query();
     assert.deepEqual(categories.map(({ name }) => name), ['Footwear', 'Apparel']);
 
