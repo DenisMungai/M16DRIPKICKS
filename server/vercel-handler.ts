@@ -1,9 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Express } from 'express';
-import { createApp } from './app';
-import { assertRequiredEnvironment } from './config';
-import { initializeDatabase } from './db';
-import { seedIfEmpty } from './seed';
 
 type InitializationStage = 'environment' | 'database/migrations' | 'seeding' | 'Express app construction';
 
@@ -21,28 +17,40 @@ type VercelRequest = IncomingMessage & {
 type VercelResponse = ServerResponse;
 
 let cachedApp: Express | undefined;
+let appPromise: Promise<Express> | undefined;
 let databasePromise: Promise<void> | undefined;
 
-function getApp() {
-  if (!cachedApp) {
-    try {
-      cachedApp = createApp();
-      console.info('[vercel-api] Express app constructed');
-    } catch (error) {
-      console.error('[vercel-api] Express app construction failed', error);
-      throw new ApiInitializationError('Express app construction', error);
-    }
+async function getApp(): Promise<Express> {
+  if (cachedApp) return cachedApp;
+  if (!appPromise) {
+    appPromise = (async () => {
+      try {
+        const { createApp } = await import('./app');
+        cachedApp = createApp();
+        console.info('[vercel-api] Express app constructed');
+        return cachedApp;
+      } catch (error) {
+        console.error('[vercel-api] Express app construction failed', error);
+        throw new ApiInitializationError('Express app construction', error);
+      }
+    })().catch((error: unknown) => {
+      appPromise = undefined;
+      throw error;
+    });
   }
-  return cachedApp;
+  return appPromise;
 }
 
 async function initializeDatabaseAndSeed() {
   let stage: InitializationStage = 'environment';
   try {
+    const { assertRequiredEnvironment } = await import('./config');
     assertRequiredEnvironment();
     stage = 'database/migrations';
+    const { initializeDatabase } = await import('./db');
     await initializeDatabase();
     stage = 'seeding';
+    const { seedIfEmpty } = await import('./seed');
     await seedIfEmpty();
     console.info('[vercel-api] database initialization complete');
   } catch (error) {
@@ -99,25 +107,21 @@ export default async function handleVercelRequest(req: VercelRequest, res: Verce
     normalizedApiPrefix: hadApiPrefix ? 'preserved' : 'added',
   });
 
-  let app: Express;
-  try {
-    app = getApp();
-  } catch (error) {
-    sendInitializationError(res, error);
-    return;
-  }
-
   if (req.method === 'GET' && receivedUrl.pathname === '/api/health') {
-    dispatch(app, req, res);
+    try {
+      const app = await getApp();
+      dispatch(app, req, res);
+    } catch (error) {
+      sendInitializationError(res, error);
+    }
     return;
   }
 
   try {
     await ensureDatabase();
+    const app = await getApp();
+    dispatch(app, req, res);
   } catch (error) {
     sendInitializationError(res, error);
-    return;
   }
-
-  dispatch(app, req, res);
 }
