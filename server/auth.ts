@@ -1,25 +1,17 @@
 import crypto from 'node:crypto';
-import { promisify } from 'node:util';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { config } from './config.js';
 
-const scrypt = promisify(crypto.scrypt) as (pw: string, salt: Buffer, len: number) => Promise<Buffer>;
-
 export async function hashPassword(password: string) {
-  const salt = crypto.randomBytes(16);
-  const key = await scrypt(password, salt, 64);
-  return `${salt.toString('hex')}:${key.toString('hex')}`;
+  return bcrypt.hash(password, 12);
 }
 
 export async function verifyPassword(password: string, stored: string) {
-  const [saltHex, keyHex] = stored.split(':');
-  if (!saltHex || !keyHex) return false;
-  const expected = Buffer.from(keyHex, 'hex');
-  const key = await scrypt(password, Buffer.from(saltHex, 'hex'), expected.length);
-  return crypto.timingSafeEqual(key, expected);
+  return bcrypt.compare(password, stored);
 }
 
-export const COOKIE_NAME = 'nova_session';
+export const COOKIE_NAME = '__Host-nova_session';
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 export const cookieOptions = {

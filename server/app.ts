@@ -42,18 +42,55 @@ export function createApp() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
+        scriptSrc: ["'self'", 'https://js.stripe.com'],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", 'data:', 'https:'],
         fontSrc: ["'self'", 'data:'],
-        connectSrc: ["'self'"],
+        connectSrc: ["'self'", 'https://api.stripe.com', 'https://js.stripe.com'],
+        frameSrc: ['https://js.stripe.com', 'https://checkout.stripe.com'],
         frameAncestors: ["'none'"],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         upgradeInsecureRequests: null,
       },
     },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    crossOriginResourcePolicy: { policy: 'same-origin' },
   }));
+
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    const isApiRoute = req.path.startsWith('/trpc') || req.path.startsWith('/api');
+    if (origin && isApiRoute && !req.path.startsWith('/api/stripe/webhook') && !req.path.startsWith('/api/mpesa/callback')) {
+      const expected = config.appUrl.replace(/\/$/, '');
+      if (!origin.startsWith(expected)) {
+        return res.status(403).json({ error: 'Origin not allowed.' });
+      }
+    }
+    res.header('Access-Control-Allow-Origin', config.appUrl);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+    if (req.method !== 'GET' && !req.path.startsWith('/api/stripe/webhook') && !req.path.startsWith('/api/mpesa/callback')) {
+      if (!req.is('application/json')) {
+        return res.status(415).json({ error: 'Content-Type must be application/json.' });
+      }
+      const referrer = req.headers.referer || req.headers.origin;
+      if (referrer) {
+        const expected = new URL(config.appUrl);
+        try {
+          const actual = new URL(referrer);
+          if (actual.origin !== expected.origin) {
+            return res.status(403).json({ error: 'Request origin mismatch.' });
+          }
+        } catch {
+          return res.status(403).json({ error: 'Request origin mismatch.' });
+        }
+      }
+    }
+    next();
+  });
 
   // Stripe needs the raw body to verify the signature, so this route comes before express.json().
   app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {

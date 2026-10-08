@@ -9,6 +9,9 @@ async function main() {
     throw new Error('Set non-empty ADMIN_EMAIL and ADMIN_PASSWORD in the project-root .env.');
   }
   if (!config.databaseUrl) throw new Error('Set DATABASE_URL in the project-root .env.');
+  if (config.isProd && password.length < 12) {
+    throw new Error('ADMIN_PASSWORD must be at least 12 characters long in production.');
+  }
 
   await syncAdminAccount(email, password);
   console.log('[admin] Configured administrator account synchronized.');

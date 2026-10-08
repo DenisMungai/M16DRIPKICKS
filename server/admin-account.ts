@@ -1,6 +1,12 @@
 import { hashPassword } from './auth.js';
 import { db } from './db.js';
 
+export function validateAdminPassword(password: string) {
+  if (process.env.NODE_ENV === 'production' && password.length < 12) {
+    throw new Error('ADMIN_PASSWORD must be at least 12 characters long in production.');
+  }
+}
+
 export async function syncAdminAccount(
   email: string,
   password: string,
@@ -10,6 +16,8 @@ export async function syncAdminAccount(
   if (!normalizedEmail || !password) {
     throw new Error('ADMIN_EMAIL and ADMIN_PASSWORD must both be set.');
   }
+
+  validateAdminPassword(password);
 
   const passwordHash = await hashPassword(password);
   const result = await database.transaction(async (client) => client.query<{ id: number }>(`

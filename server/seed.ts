@@ -102,6 +102,10 @@ export async function seedAll() {
     }
   });
 
+  if (config.isProd && (!config.adminPassword || config.adminPassword.length < 12)) {
+    throw new Error('ADMIN_PASSWORD must be at least 12 characters long in production.');
+  }
+
   let adminPassword = config.adminPassword;
   if (!adminPassword) {
     adminPassword = crypto.randomBytes(9).toString('base64url');
@@ -113,7 +117,7 @@ export async function seedAll() {
     await db.query('INSERT INTO user_coupons (user_id,coupon_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [adminId, coupon.id]);
   }
 
-  if (!config.seedDemoData) return;
+  if (config.isProd || !config.seedDemoData) return;
   const demoHash = await hashPassword('Demo1234!');
   await db.transaction(async (client) => {
     const demoResult = await client.query<{ id: number }>(
@@ -241,6 +245,6 @@ if (process.argv[1]?.endsWith('seed.ts')) {
     if (process.argv.includes('--reset')) await resetAll();
     await seedAll();
     console.log('[seed] done');
-    if (config.seedDemoData) console.log('  admin:    ' + config.adminEmail + ' / ' + (config.adminPassword || '(generated above)') + '\n  customer: demo@novashop.test / Demo1234!');
+    if (!config.isProd && config.seedDemoData) console.log('  admin:    ' + config.adminEmail + ' / ' + (config.adminPassword || '(generated above)') + '\n  customer: demo@novashop.test / Demo1234!');
   })().catch((error) => { console.error(error); process.exit(1); });
 }

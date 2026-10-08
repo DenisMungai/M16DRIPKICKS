@@ -44,7 +44,6 @@ export default function Login({ initialMode = 'login' }) {
           {mode === 'login' ? 'New to M16DRIPKICKS?' : 'Already have an account?'}{' '}
           <button onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); m.reset(); }} className="font-medium text-ink underline underline-offset-4">{mode === 'login' ? 'Create an account' : 'Sign in'}</button>
         </p>
-        {import.meta.env.DEV && mode === 'login' && <p className="mt-4 text-center text-micro text-ink-faint">Dev demo admin: admin@novashop.test / Admin123! · <Link to="/" className="underline">Continue as guest</Link></p>}
       </div>
     </Page>
   );
