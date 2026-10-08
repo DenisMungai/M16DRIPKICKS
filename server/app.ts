@@ -22,6 +22,17 @@ function sniffImage(b: Buffer): 'jpg' | 'png' | 'gif' | 'webp' | null {
   return null;
 }
 
+function isAllowedOrigin(value: string): boolean {
+  let origin: string;
+  try {
+    origin = new URL(value).origin;
+  } catch {
+    return false;
+  }
+  if (origin === new URL(config.appUrl).origin) return true;
+  return !config.isProd && ['http://localhost:5173', 'http://127.0.0.1:5173'].includes(origin);
+}
+
 export function createApp() {
   const app = express();
   app.set('trust proxy', 1);
@@ -62,12 +73,12 @@ export function createApp() {
     const origin = req.headers.origin;
     const isApiRoute = req.path.startsWith('/trpc') || req.path.startsWith('/api');
     if (origin && isApiRoute && !req.path.startsWith('/api/stripe/webhook') && !req.path.startsWith('/api/mpesa/callback')) {
-      const expected = config.appUrl.replace(/\/$/, '');
-      if (!origin.startsWith(expected)) {
+      if (!isAllowedOrigin(origin)) {
         return res.status(403).json({ error: 'Origin not allowed.' });
       }
     }
-    res.header('Access-Control-Allow-Origin', config.appUrl);
+    const corsOrigin = origin && isApiRoute && isAllowedOrigin(origin) ? new URL(origin).origin : config.appUrl;
+    res.header('Access-Control-Allow-Origin', corsOrigin);
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -78,13 +89,7 @@ export function createApp() {
       }
       const referrer = req.headers.referer || req.headers.origin;
       if (referrer) {
-        const expected = new URL(config.appUrl);
-        try {
-          const actual = new URL(referrer);
-          if (actual.origin !== expected.origin) {
-            return res.status(403).json({ error: 'Request origin mismatch.' });
-          }
-        } catch {
+        if (!isAllowedOrigin(referrer)) {
           return res.status(403).json({ error: 'Request origin mismatch.' });
         }
       }

@@ -81,5 +81,27 @@ describe('Vercel API routing', () => {
     const detail = await trpcClient.catalog.products.byId.query({ id: products.items[0].id });
     assert.equal(detail.id, products.items[0].id);
     assert.equal(detail.name, products.items[0].name);
+
+    const localOriginClient = createTRPCProxyClient<AppRouter>({
+      links: [httpBatchLink({
+        url: `${baseUrl}/api/trpc`,
+        fetch(input, init) {
+          const headers = new Headers(init?.headers);
+          headers.set('Origin', 'http://localhost:5173');
+          headers.set('Referer', 'http://localhost:5173/login');
+          return fetch(input, { ...init, headers });
+        },
+      })],
+    });
+    const registered = await localOriginClient.auth.register.mutate({
+      name: 'HTTP Sign In',
+      email: 'http-sign-in@example.test',
+      password: 'Secret123!',
+    });
+    const signedIn = await localOriginClient.auth.login.mutate({
+      email: registered.email,
+      password: 'Secret123!',
+    });
+    assert.equal(signedIn.id, registered.id);
   });
 });

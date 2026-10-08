@@ -133,6 +133,13 @@ describe('catalog', () => {
 });
 
 describe('auth', () => {
+  it('uses a development-compatible session cookie outside production', async () => {
+    const { COOKIE_NAME, cookieOptions } = await import('../auth.js');
+    assert.equal(COOKIE_NAME, 'nova_session');
+    assert.equal(cookieOptions.secure, false);
+    assert.equal(cookieOptions.path, '/');
+  });
+
   it('registers, rejects duplicates and bad logins, grants coupons', async () => {
     const api = make();
     const u = await api.auth.register({ name: 'Test Buyer', email: 'Buyer@Example.com', password: 'Secret123!' });

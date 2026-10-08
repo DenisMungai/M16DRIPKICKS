@@ -11,13 +11,13 @@ export async function verifyPassword(password: string, stored: string) {
   return bcrypt.compare(password, stored);
 }
 
-export const COOKIE_NAME = '__Host-nova_session';
+export const COOKIE_NAME = config.isProd ? '__Host-nova_session' : 'nova_session';
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 export const cookieOptions = {
   httpOnly: true,
   sameSite: 'lax' as const,
-  secure: config.isProd && config.appUrl.startsWith('https'),
+  secure: config.isProd,
   maxAge: MAX_AGE_MS,
   path: '/',
 };
