@@ -74,6 +74,19 @@ export async function refreshCatalog() {
   return catalogProducts.length;
 }
 
+async function ensureAdminAccount() {
+  if (config.isProd && (!config.adminPassword || config.adminPassword.length < 12)) {
+    throw new Error('ADMIN_PASSWORD must be at least 12 characters long in production.');
+  }
+
+  let adminPassword = config.adminPassword;
+  if (!adminPassword) {
+    adminPassword = crypto.randomBytes(9).toString('base64url');
+    console.log(`\n[seed] ADMIN_PASSWORD not set. Generated one for ${config.adminEmail}: ${adminPassword}\n       Save it now; it is not shown again.\n`);
+  }
+  return syncAdminAccount(config.adminEmail, adminPassword);
+}
+
 export async function resetAll() {
   await db.query(`TRUNCATE order_items, orders, wishlist, user_coupons, coupons, addresses, products, brands, categories, users
     RESTART IDENTITY CASCADE`);
@@ -102,16 +115,7 @@ export async function seedAll() {
     }
   });
 
-  if (config.isProd && (!config.adminPassword || config.adminPassword.length < 12)) {
-    throw new Error('ADMIN_PASSWORD must be at least 12 characters long in production.');
-  }
-
-  let adminPassword = config.adminPassword;
-  if (!adminPassword) {
-    adminPassword = crypto.randomBytes(9).toString('base64url');
-    console.log(`\n[seed] ADMIN_PASSWORD not set. Generated one for ${config.adminEmail}: ${adminPassword}\n       Save it now; it is not shown again.\n`);
-  }
-  const adminId = await syncAdminAccount(config.adminEmail, adminPassword);
+  const adminId = await ensureAdminAccount();
   const automaticCoupons = await db.query<{ id: number }>('SELECT id FROM coupons WHERE auto_grant=1');
   for (const coupon of automaticCoupons.rows) {
     await db.query('INSERT INTO user_coupons (user_id,coupon_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [adminId, coupon.id]);
@@ -221,7 +225,10 @@ export async function seedAll() {
 
 export async function seedIfEmpty() {
   const result = await db.query<{ n: number }>('SELECT COUNT(*)::integer AS n FROM products');
-  if (result.rows[0].n > 0) return false;
+  if (result.rows[0].n > 0) {
+    await ensureAdminAccount();
+    return false;
+  }
   await seedAll();
   console.log(`[seed] catalog ready${config.seedDemoData ? ' with demo data' : ''}. Admin: ${config.adminEmail}`);
   return true;

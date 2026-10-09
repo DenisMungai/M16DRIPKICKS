@@ -83,6 +83,21 @@ describe('admin credential sync', () => {
     await assert.rejects(syncAdminAccount('admin@example.test', ''), /ADMIN_EMAIL and ADMIN_PASSWORD/);
     assert.equal((await row<{ count: number }>('SELECT COUNT(*)::integer AS count FROM users')).count, before);
   });
+
+  it('synchronizes configured admin credentials when the catalog already exists', async () => {
+    const { config } = await import('../config.js');
+    const { verifyPassword } = await import('../auth.js');
+    const { seedIfEmpty } = await import('../seed.js');
+    await db.query("UPDATE users SET role = 'customer', password_hash = $1 WHERE email = $2", [
+      'stale-password-hash',
+      config.adminEmail,
+    ]);
+
+    assert.equal(await seedIfEmpty(), false);
+    const admin = await row<import('../models.js').UserRow>('SELECT * FROM users WHERE email = $1', [config.adminEmail]);
+    assert.equal(admin.role, 'admin');
+    assert.equal(await verifyPassword(config.adminPassword, admin.password_hash), true);
+  });
 });
 
 describe('catalog', () => {
