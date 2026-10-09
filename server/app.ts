@@ -74,7 +74,7 @@ export function createApp() {
     const isApiRoute = req.path.startsWith('/trpc') || req.path.startsWith('/api');
     if (origin && isApiRoute && !req.path.startsWith('/api/stripe/webhook') && !req.path.startsWith('/api/mpesa/callback')) {
       if (!isAllowedOrigin(origin)) {
-        return res.status(403).json({ error: 'Origin not allowed.' });
+        return res.status(403).json({ error: 'Origin not allowed.', code: 'ORIGIN_NOT_ALLOWED' });
       }
     }
     const corsOrigin = origin && isApiRoute && isAllowedOrigin(origin) ? new URL(origin).origin : config.appUrl;
@@ -90,7 +90,7 @@ export function createApp() {
       const referrer = req.headers.referer || req.headers.origin;
       if (referrer) {
         if (!isAllowedOrigin(referrer)) {
-          return res.status(403).json({ error: 'Request origin mismatch.' });
+          return res.status(403).json({ error: 'Request origin mismatch.', code: 'ORIGIN_NOT_ALLOWED' });
         }
       }
     }

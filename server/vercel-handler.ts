@@ -25,6 +25,13 @@ async function getApp(): Promise<Express> {
   if (!appPromise) {
     appPromise = (async () => {
       try {
+        const { assertAppUrl } = await import('./config.js');
+        assertAppUrl();
+      } catch (error) {
+        console.error('[vercel-api] environment validation failed', error);
+        throw new ApiInitializationError('environment', error);
+      }
+      try {
         const { createApp } = await import('./app.js');
         cachedApp = createApp();
         console.info('[vercel-api] Express app constructed');
@@ -73,7 +80,7 @@ function sendInitializationError(res: VercelResponse, error: unknown) {
   const stage = error instanceof ApiInitializationError ? error.stage : 'unknown';
   res.statusCode = 500;
   res.setHeader('content-type', 'application/json; charset=utf-8');
-  res.end(JSON.stringify({ error: 'API initialization failed.', stage }));
+  res.end(JSON.stringify({ error: 'API initialization failed.', code: 'API_INITIALIZATION_FAILED', stage }));
 }
 
 function dispatch(app: Express, req: VercelRequest, res: VercelResponse) {
@@ -87,7 +94,7 @@ function dispatch(app: Express, req: VercelRequest, res: VercelResponse) {
     }
     res.statusCode = 500;
     res.setHeader('content-type', 'application/json; charset=utf-8');
-    res.end(JSON.stringify({ error: 'Express request dispatch failed.' }));
+    res.end(JSON.stringify({ error: 'Express request dispatch failed.', code: 'API_DISPATCH_FAILED' }));
   }
 }
 

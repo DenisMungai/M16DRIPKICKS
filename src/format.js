@@ -3,7 +3,10 @@ export const money = (n) => `KSh ${kesFormat.format(Math.round(n ?? 0))}`;
 export const kes = money;
 export const date = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 export const dateTime = (iso) => new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-export const errMsg = (e) => e?.message || 'Something went wrong. Please try again.';
+export const errMsg = (e) => {
+  const messages = [e?.message, e?.cause?.message];
+  return messages.find((message) => typeof message === 'string' && message.length) || 'Something went wrong. Please try again.';
+};
 export const fieldErrors = (e) => e?.data?.fieldErrors || {};
 
 export const STATUS = {

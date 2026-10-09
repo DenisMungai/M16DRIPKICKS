@@ -4,6 +4,17 @@ import { z } from 'zod';
 const isProd = process.env.NODE_ENV === 'production';
 const port = Number(process.env.PORT ?? 3001);
 const env = (k: string) => (process.env[k] ?? '').trim();
+const normalizeAppUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    if (url.pathname === '/' && !url.search && !url.hash && !url.username && !url.password) {
+      return url.origin;
+    }
+  } catch {
+    // Validation below reports malformed values with the environment variable name.
+  }
+  return value;
+};
 const paymentsDemoMode = env('PAYMENTS_DEMO_MODE') === 'true';
 
 const mpesaKeys = {
@@ -18,7 +29,7 @@ export const config = {
   isProd,
   port,
   paymentsDemoMode,
-  appUrl: env('APP_URL') || (isProd ? `http://localhost:${port}` : 'http://localhost:5173'),
+  appUrl: normalizeAppUrl(env('APP_URL') || (isProd ? '' : 'http://localhost:5173')),
   databaseUrl: env('DATABASE_URL') || 'postgresql://localhost:5432/m16dripkicks',
   legacyDbPath: env('LEGACY_DB_PATH') || './data/novashop.db',
   uploadDir: env('UPLOAD_DIR') || './data/uploads',
@@ -42,11 +53,29 @@ export const config = {
   },
 };
 
+export function assertAppUrl() {
+  if (config.isProd && !env('APP_URL')) {
+    throw new Error('APP_URL is required in production and must be the exact public HTTPS origin.');
+  }
+  if (!config.appUrl) return;
+
+  let appUrl: URL;
+  try {
+    appUrl = new URL(config.appUrl);
+  } catch {
+    throw new Error('APP_URL must be a valid origin URL.');
+  }
+
+  if (config.isProd && (appUrl.protocol !== 'https:' || appUrl.pathname !== '/' || appUrl.search || appUrl.hash || appUrl.username || appUrl.password)) {
+    throw new Error('APP_URL must be the exact public HTTPS origin, without a path, query, or credentials.');
+  }
+}
+
 export function assertRequiredEnvironment() {
   const isDemoModeAllowed = !config.isProd || config.paymentsDemoMode;
   const requiredSchema = z.object({
     DATABASE_URL: z.string().min(1),
-    APP_URL: z.string().url(),
+    APP_URL: z.string().min(1, 'APP_URL is required.').url(),
     JWT_SECRET: z.string().min(1),
     STRIPE_SECRET_KEY: z.string().min(1).optional(),
     STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
@@ -81,8 +110,9 @@ export function assertRequiredEnvironment() {
     if (!config.databaseUrl) {
       throw new Error('DATABASE_URL is required in production.');
     }
-    if (!config.appUrl || !config.appUrl.startsWith('https://')) {
-      throw new Error('APP_URL must be a https:// URL in production.');
+    const appUrl = new URL(config.appUrl);
+    if (appUrl.protocol !== 'https:' || appUrl.pathname !== '/' || appUrl.search || appUrl.hash || appUrl.username || appUrl.password) {
+      throw new Error('APP_URL must be the exact public HTTPS origin, without a path, query, or credentials.');
     }
     if (!config.paymentsDemoMode && (!config.mpesa.live || !config.stripe.enabled)) {
       throw new Error('Payments are disabled in production; set PAYMENTS_DEMO_MODE=true or provide the required payment keys.');
@@ -90,6 +120,7 @@ export function assertRequiredEnvironment() {
     if (config.paymentsDemoMode && !config.mpesa.live && !config.stripe.enabled) {
       throw new Error('PAYMENTS_DEMO_MODE=true requires at least one configured payment provider in production.');
     }
+
     if (config.isProd && config.adminPassword && config.adminPassword.length < 12) {
       throw new Error('ADMIN_PASSWORD must be at least 12 characters in production.');
     }

@@ -7,6 +7,7 @@ import type { AppRouter } from '../router.js';
 
 process.env.NODE_ENV = 'test';
 process.env.DATABASE_URL = 'postgres://localhost:5432/test';
+process.env.APP_URL = 'http://localhost:5173/';
 process.env.SEED_DEMO_DATA = 'false';
 
 let server: Server;
@@ -48,8 +49,23 @@ describe('Vercel API routing', () => {
     assert.deepEqual(await response.json(), { ok: true });
   });
 
-  it('serves batched tRPC catalog, product list, and detail queries from the database', async () => {
+  it('returns a tRPC envelope for unauthenticated auth.me', async () => {
     await initializeTestDatabase();
+    const { config } = await import('../config.js');
+    assert.equal(config.appUrl, 'http://localhost:5173');
+    const response = await fetch(`${baseUrl}/api/trpc/auth.me`);
+    assert.equal(response.status, 200);
+    const body = await response.json() as { result?: { data?: unknown } };
+    const data = body.result?.data;
+    assert.equal(
+      typeof data === 'object' && data !== null && 'json' in data
+        ? (data as { json: unknown }).json
+        : data,
+      null,
+    );
+  });
+
+  it('serves batched tRPC catalog, product list, and detail queries from the database', async () => {
     const requestUrls: string[] = [];
     const batchClient = createTRPCProxyClient<AppRouter>({
       links: [httpBatchLink({
@@ -82,10 +98,12 @@ describe('Vercel API routing', () => {
     assert.equal(detail.id, products.items[0].id);
     assert.equal(detail.name, products.items[0].name);
 
+    const loginRequestUrls: string[] = [];
     const localOriginClient = createTRPCProxyClient<AppRouter>({
       links: [httpBatchLink({
         url: `${baseUrl}/api/trpc`,
         fetch(input, init) {
+          loginRequestUrls.push(String(input));
           const headers = new Headers(init?.headers);
           headers.set('Origin', 'http://localhost:5173');
           headers.set('Referer', 'http://localhost:5173/login');
@@ -103,5 +121,19 @@ describe('Vercel API routing', () => {
       password: 'Secret123!',
     });
     assert.equal(signedIn.id, registered.id);
+    assert.ok(loginRequestUrls.some((requestUrl) => new URL(requestUrl).pathname.endsWith('/auth.login')));
+    await assert.rejects(
+      trpcClient.auth.login.mutate({ email: registered.email, password: 'incorrect-password' }),
+      (error: { data?: { code?: string } }) => error.data?.code === 'UNAUTHORIZED',
+    );
+
+    const rejectedOrigin = await fetch(`${baseUrl}/api/trpc/auth.me`, {
+      headers: { Origin: 'https://untrusted.example' },
+    });
+    assert.equal(rejectedOrigin.status, 403);
+    assert.deepEqual(await rejectedOrigin.json(), {
+      error: 'Origin not allowed.',
+      code: 'ORIGIN_NOT_ALLOWED',
+    });
   });
 });
