@@ -4,5 +4,30 @@
     "api/**/*.ts": {
       "includeFiles": "server/migrations/**/*.sql"
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/shop", "destination": "/index.html" },
+    { "source": "/categories", "destination": "/index.html" },
+    { "source": "/deals", "destination": "/index.html" },
+    { "source": "/new-arrivals", "destination": "/index.html" },
+    { "source": "/best-sellers", "destination": "/index.html" },
+    { "source": "/brands", "destination": "/index.html" },
+    { "source": "/collections", "destination": "/index.html" },
+    { "source": "/product/:id", "destination": "/index.html" },
+    { "source": "/cart", "destination": "/index.html" },
+    { "source": "/login", "destination": "/index.html" },
+    { "source": "/register", "destination": "/index.html" },
+    { "source": "/help/:slug", "destination": "/index.html" },
+    { "source": "/checkout", "destination": "/index.html" },
+    { "source": "/orders", "destination": "/index.html" },
+    { "source": "/orders/:code", "destination": "/index.html" },
+    { "source": "/wishlist", "destination": "/index.html" },
+    { "source": "/coupons", "destination": "/index.html" },
+    { "source": "/addresses", "destination": "/index.html" },
+    { "source": "/settings", "destination": "/index.html" },
+    { "source": "/admin", "destination": "/index.html" },
+    { "source": "/admin/inventory", "destination": "/index.html" },
+    { "source": "/admin/coupons", "destination": "/index.html" },
+    { "source": "/admin/orders", "destination": "/index.html" }
+  ]
 }
