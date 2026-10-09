@@ -94,7 +94,7 @@ export async function buildQuote(input: QuoteInput, client?: PoolClient) {
       discountCents = res.discountCents;
       freeShipping = res.freeShipping;
       coupon = { code: res.coupon.code, ok: true, title: res.coupon.title };
-    } else {
+    } else if ('message' in res) {
       coupon = { code: input.couponCode.trim().toUpperCase(), ok: false, message: res.message };
     }
   }

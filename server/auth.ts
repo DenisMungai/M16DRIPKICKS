@@ -28,8 +28,13 @@ export const signSession = (userId: number) =>
 export function readSession(token: string | undefined): number | null {
   if (!token) return null;
   try {
-    const p = jwt.verify(token, config.jwtSecret) as { sub?: number };
-    return typeof p.sub === 'number' ? p.sub : null;
+    const payload = jwt.verify(token, config.jwtSecret);
+    if (typeof payload !== 'object' || payload === null) return null;
+    const subject: unknown = payload.sub;
+    if (typeof subject === 'number' && Number.isSafeInteger(subject)) return subject;
+    if (typeof subject !== 'string' || !/^[1-9]\d*$/.test(subject)) return null;
+    const userId = Number(subject);
+    return Number.isSafeInteger(userId) ? userId : null;
   } catch {
     return null;
   }

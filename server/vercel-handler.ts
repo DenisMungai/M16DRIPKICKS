@@ -4,9 +4,12 @@ import type { Express } from 'express';
 type InitializationStage = 'environment' | 'database/migrations' | 'seeding' | 'Express app construction';
 
 class ApiInitializationError extends Error {
+  readonly cause: unknown;
+
   constructor(readonly stage: InitializationStage, cause: unknown) {
-    super(`API initialization failed during ${stage}.`, { cause });
+    super(`API initialization failed during ${stage}.`);
     this.name = 'ApiInitializationError';
+    this.cause = cause;
   }
 }
 
