@@ -16,13 +16,28 @@ function iconFor(p) {
   }
 }
 
-/** Shows the product photo when one is set, otherwise a quiet placeholder. */
+/**
+ * Shows the product photo when one is set, otherwise a quiet placeholder.
+ * Fix 2: Uses <picture> to serve WebP to capable browsers with a JPEG/PNG fallback.
+ */
 export default function ProductImage({ product, className = '', tone = 'bg-mist', size = 'h-16 w-16' }) {
   const Icon = iconFor(product);
   if (product?.image) {
+    // Derive the WebP sibling path: "/products/foo.jpg" → "/products/foo.webp"
+    const webpSrc = product.image.replace(/\.(jpe?g|png)$/i, '.webp');
+    const hasWebp = webpSrc !== product.image; // only add <source> when extension changed
     return (
       <div className={`overflow-hidden ${tone} ${className}`}>
-        <img src={product.image} alt={product.name} loading="lazy" className="h-full w-full object-cover" />
+        <picture>
+          {hasWebp && <source srcSet={webpSrc} type="image/webp" />}
+          <img
+            src={product.image}
+            alt={product.name}
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover"
+          />
+        </picture>
       </div>
     );
   }

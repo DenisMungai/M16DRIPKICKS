@@ -12,7 +12,9 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      staleTime: 15_000,
+      // Fix 10: Increased staleTime — catalog/product data rarely changes.
+      // User-specific queries (orders, cart) override this per-call.
+      staleTime: 5 * 60_000, // 5 minutes (was 15 seconds)
       retry: (count, error) => !['UNAUTHORIZED', 'FORBIDDEN', 'NOT_FOUND', 'BAD_REQUEST'].includes(error?.data?.code) && count < 2,
     },
   },

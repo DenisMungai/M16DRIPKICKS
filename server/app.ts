@@ -157,7 +157,8 @@ export function createApp() {
 
   const dist = path.resolve('dist');
   if (config.isProd && fs.existsSync(dist)) {
-    app.use(express.static(dist, { index: false, maxAge: '1h' }));
+    // Fix 6: Hashed assets are immutable — cache for 1 year, not 1 hour.
+    app.use(express.static(dist, { index: false, maxAge: '1y', immutable: true }));
     app.get(/^\/(?!trpc|api|uploads).*/, (_req, res) => res.sendFile(path.join(dist, 'index.html')));
   }
   return app;

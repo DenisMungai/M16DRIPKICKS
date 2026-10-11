@@ -22,7 +22,8 @@ function Alerts() {
   const [seen, setSeen] = useState(() => localStorage.getItem(SEEN) || '');
   const ref = useRef(null);
   useOutside(ref, () => setOpen(false));
-  const orders = trpc.orders.list.useQuery({ limit: 5 }, { refetchInterval: 60_000 });
+  // Fix 7: Poll every 5 min instead of every 60 s — orders rarely change in real-time.
+  const orders = trpc.orders.list.useQuery({ limit: 5 }, { refetchInterval: 5 * 60_000, staleTime: 5 * 60_000 });
   const list = orders.data ?? [];
   const unread = list.some((o) => o.updatedAt > seen);
 

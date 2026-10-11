@@ -22,7 +22,7 @@ function Row({ title, to, items }) {
 
 export default function Home() {
   const { open, lines } = useCart();
-  const cats = trpc.catalog.categories.useQuery();
+  // Fix 3: single round-trip — home endpoint now includes categories
   const home = trpc.catalog.home.useQuery();
   const benefits = [
     ['Competitive pricing', 'Favourable prices on all products.'],
@@ -43,48 +43,51 @@ export default function Home() {
             <p className="mb-8 max-w-md text-body text-ink-soft">Affordable apparel and footwear, with nationwide delivery within 12 hours.</p>
             <Link to="/shop" className="btn-primary w-max">Shop now <ArrowRight className="h-4 w-4" /></Link>
           </div>
+          {/* Fix 2: Use <picture> for WebP with JPEG fallback. fetchpriority=high replaces the old eager hint. */}
           <div className="home-hero-image h-56 w-full bg-stone sm:h-auto sm:w-[48%]">
-            <img
-              src="/products/m16drip/white-air-style-runners.jpg"
-              alt="White Air-Style Runners from M16DRIPKICKS"
-              loading="eager"
-              className="h-full w-full object-cover"
-            />
+            <picture>
+              <source srcSet="/products/m16drip/white-air-style-runners.webp" type="image/webp" />
+              <img
+                src="/products/m16drip/white-air-style-runners.jpg"
+                alt="White Air-Style Runners from M16DRIPKICKS"
+                fetchpriority="high"
+                decoding="async"
+                className="h-full w-full object-cover"
+              />
+            </picture>
           </div>
         </section>
 
-        <section aria-labelledby="cat-heading">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 id="cat-heading" className="text-title">Shop by category</h2>
-            <Link to="/categories" className="text-small font-medium underline-offset-4 hover:underline">View all</Link>
-          </div>
-          <Query q={cats}>
-            {(list) => (
-              <ul className="hide-scrollbar flex snap-x gap-gutter overflow-x-auto pb-4">
-                {list.filter((c) => c.count > 0).map((c) => {
-                  const Icon = categoryIcons[c.slug] ?? ShoppingBag;
-                  return (
-                    <li key={c.slug} className="snap-start">
-                      <Link to={`/shop?category=${c.slug}`} className="group flex min-w-[96px] flex-col items-center gap-3">
-                        <span className="flex h-20 w-20 items-center justify-center rounded-full border border-line bg-card transition-colors group-hover:border-ink group-hover:bg-ink group-hover:text-white">
-                          <Icon className="h-7 w-7" strokeWidth={1.5} />
-                        </span>
-                        <span className="text-center text-small font-medium">{c.name}</span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Query>
-        </section>
-
+        {/* Fix 3: single query — render categories + products from the same response */}
         <Query q={home}>
           {(h) => (
             <>
+              <section aria-labelledby="cat-heading">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 id="cat-heading" className="text-title">Shop by category</h2>
+                  <Link to="/categories" className="text-small font-medium underline-offset-4 hover:underline">View all</Link>
+                </div>
+                <ul className="hide-scrollbar flex snap-x gap-gutter overflow-x-auto pb-4">
+                  {h.categories.filter((c) => c.count > 0).map((c) => {
+                    const Icon = categoryIcons[c.slug] ?? ShoppingBag;
+                    return (
+                      <li key={c.slug} className="snap-start">
+                        <Link to={`/shop?category=${c.slug}`} className="group flex min-w-[96px] flex-col items-center gap-3">
+                          <span className="flex h-20 w-20 items-center justify-center rounded-full border border-line bg-card transition-colors group-hover:border-ink group-hover:bg-ink group-hover:text-white">
+                            <Icon className="h-7 w-7" strokeWidth={1.5} />
+                          </span>
+                          <span className="text-center text-small font-medium">{c.name}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+
               <Row title="New arrivals" to="/new-arrivals" items={{ items: h.newArrivals, total: h.newArrivals.length }} />
               <Row title="Best sellers" to="/best-sellers" items={{ items: h.bestSellers, total: h.bestSellers.length }} />
               <Row title="Deals" to="/deals" items={{ items: h.deals, total: h.deals.length }} />
+
               <section aria-labelledby="store-benefits-heading">
                 <h2 id="store-benefits-heading" className="mb-4 text-title">Why shop with M16DRIPKICKS?</h2>
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -95,7 +98,7 @@ export default function Home() {
                     </article>
                   ))}
                 </div>
-                <p className="mt-4 text-small text-ink-soft">You’ve come to the right place for fashion.</p>
+                <p className="mt-4 text-small text-ink-soft">You've come to the right place for fashion.</p>
               </section>
             </>
           )}
